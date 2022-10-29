@@ -1,13 +1,15 @@
 import java.text.NumberFormat;
 import java.util.*;
 
-public class StatementPrinter {
+
+
+public class StatementPrinter{
 
   public String[] print(Invoice invoice, Map<String, Play> plays) {
   
     float totalAmount = 0;  // Somme totale du
     int volumeCredits = 0;  // Points de fidélité gagnés
-    String tampon = String.format("Statement for %s\n", invoice.getCustomer());  // Un tampon qui va servir à insérer dans le StringBuffer
+    String tampon = String.format("Statement for %s, (client_id : %s)\n", invoice.getCustomer().getNom(), invoice.getCustomer().getNumeroClient());  // Un tampon qui va servir à insérer dans le StringBuffer
     StringBuffer result = new StringBuffer(tampon);	//Notre StringBuffer qui a remplacé le String de départ 
  
     NumberFormat frmt = NumberFormat.getCurrencyInstance(Locale.US);
@@ -38,18 +40,15 @@ public class StatementPrinter {
           thisAmount += 3 * perf.getAudience();	// Le cout de la pièce augmente encore
           break;
           
-        // On a retiré default car il n'a plus d'utilité, comme on vérifie le type depuis Play
       }
 
       // add volume credits
-      volumeCredits += Math.max(perf.getAudience() - 30, 0);  //Si l'audience est supérieur à 30 alors le client gagne des points de fidélité
+      volumeCredits += Math.max(perf.getAudience() - 30, 0);
       
       // add extra credit for every ten comedy attendees
-      if (TypePiecesOk.COMEDY.equals(play.getType())) volumeCredits += Math.floor(perf.getAudience() / 5);
+      if ((TypePiecesOk.COMEDY).equals(play.getType())) volumeCredits += Math.floor(perf.getAudience() / 5);
 
       // print line for this order
-      
-
       tampon = String.format("  %s: %s (%s seats)\n", play.getName(), frmt.format(thisAmount), perf.getAudience());
       result.append(tampon);
       
@@ -63,31 +62,53 @@ public class StatementPrinter {
       i = i + 1;
     }
     
-    tampon = String.format("Amount owed is %s\n", frmt.format(totalAmount));
-    result.append(tampon);
-
-
     
-
     tampon = String.format("You earned %s credits\n", volumeCredits);
     result.append(tampon);
     
+    int actualCredit = invoice.getCustomer().getSoldePointsFidelite();
+    invoice.getCustomer().setSoldePointsFidelite(actualCredit + volumeCredits);
+    actualCredit = invoice.getCustomer().getSoldePointsFidelite();
     
     
-    String[] tableau_fin_info= new String[2];
-    tableau_fin_info[0] = frmt.format(totalAmount);
-    tableau_fin_info[1] = String.valueOf(volumeCredits);
+    if(actualCredit >= 150){     //Un réduction va s'appliquer
+       tampon = "You have a reduction of 15 $ for your fidelity\n";
+       result.append(tampon);
+
+       actualCredit -= 150;
+           
+       tampon = String.format("Your total credit : %s (%s - 150)\n", actualCredit, (actualCredit+150));
+       result.append(tampon);
+       
+       totalAmount = totalAmount - 15;       
+        
+    }
+    else{  //Pas de réduction disponible
+       tampon = String.format("Your total credit : %s\n", actualCredit);
+       result.append(tampon); 
+    }
     
+    tampon = String.format("Amount owed is %s\n", frmt.format(totalAmount));
+    result.append(tampon);
+        
+    float[] tableau_fin_info= new float[2];
+    //tableau_fin_info[0] = frmt.format(totalAmount);
+    tableau_fin_info[0] = totalAmount;
+    tableau_fin_info[1] = volumeCredits;
     
-    // Creer l objet Affiche facture
     Affiche_facture affiche_facture = new Affiche_facture(result.substring(0), invoice.getCustomer(), tableau_pieces_infos, tableau_fin_info);
     affiche_facture.toText();
     String facture_html = affiche_facture.toHTML();
+    
+    //Mise à jour des points de fidélité du client
+    invoice.getCustomer().setSoldePointsFidelite(actualCredit);
     
     String[] tab = new String[2];
     tab[0] = result.substring(0);
     tab[1] = facture_html;
     return tab;
   }
+  
+  
 
 }
