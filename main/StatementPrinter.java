@@ -24,13 +24,13 @@ public class StatementPrinter {
       float thisAmount = 0;	// La somme du pour la performance en cours ( dans le for)
 
       switch (play.getType()) {	// On effectue un traitement spécifique celon le type de pièce
-        case "tragedy":		// Si la pièce est une tragedy
+        case TRAGEDY:		// Si la pièce est une tragedy
           thisAmount = 400;	// Le cout de la piece est mis à 400
           if (perf.getAudience() > 30) { 	// Si l'audience de la perf a dépassée 30
             thisAmount += 10 * (perf.getAudience() - 30);    // Le cout de la pièce augmente
           }
           break;
-        case "comedy":		// Si la pièce est une comedy
+        case COMEDY:		// Si la pièce est une comedy
           thisAmount = 300;     // Le cout de la piece est mis à 300
           if (perf.getAudience() > 20) {   // Si l'audience de la perf a dépassée 20
             thisAmount += 100 + 5 * (perf.getAudience() - 20);     // Le cout de la pièce augmente
@@ -45,7 +45,7 @@ public class StatementPrinter {
       volumeCredits += Math.max(perf.getAudience() - 30, 0);  //Si l'audience est supérieur à 30 alors le client gagne des points de fidélité
       
       // add extra credit for every ten comedy attendees
-      if ("comedy".equals(play.getType())) volumeCredits += Math.floor(perf.getAudience() / 5);
+      if (TypePiecesOk.COMEDY.equals(play.getType())) volumeCredits += Math.floor(perf.getAudience() / 5);
 
       // print line for this order
       
