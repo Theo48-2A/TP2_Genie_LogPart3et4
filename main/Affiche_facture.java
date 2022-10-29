@@ -2,39 +2,38 @@ import java.util.*;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.Objects;
+import java.text.NumberFormat;
+
+
 
 public class Affiche_facture{
 
    private String contenu_Facture;     //Le contenu de la facture
-   private String nom_client;  		// Nom du client
+   private Customer client;  		// Nom du client
    private String[][] tableau_pieces_infos;    //Le tableau qui contient chaque pièce avec ses informations [[nom][nb_spectateurs][cout]]
-   private String[] tableau_fin_info;         //Le tableau qui contient le cout total ainsi que les points de fidelité gagnés
+   private float[] tableau_fin_info;         //Le tableau qui contient le cout total ainsi que les points de fidelité gagnés
 
-   public Affiche_facture(String contenu_Facture, String nom_client, String[][] tableau_pieces_infos, String[] tableau_fin_info){
+   public Affiche_facture(String contenu_Facture, Customer client, String[][] tableau_pieces_infos, float[] tableau_fin_info){
       this.contenu_Facture = Objects.requireNonNull(contenu_Facture);
-      this.nom_client = Objects.requireNonNull(nom_client);
+      this.client = Objects.requireNonNull(client);
       this.tableau_pieces_infos = Objects.requireNonNull(tableau_pieces_infos);
       this.tableau_fin_info = Objects.requireNonNull(tableau_fin_info);
 
    }
 
-   //Obtenir le Contenu de la facture
    public String getContenu_facture(){
       return this.contenu_Facture;
    }
    
-   //Obtenir le nom du client
-   public String getNomclient(){
-      return this.nom_client;
+   public Customer getClient(){
+      return this.client;
    }
    
-   //Obtenir le tableau qui contient les informations des pièces de théâtre
    public String[][] getTableau_pieces_infos(){
       return this.tableau_pieces_infos;
    }
 
-   //Obtenir le tableau qui contient la somme dû par le client ainsi que les points de fidélité qu'il a gagné
-   public String[] getTableau_fin_info(){
+   public float[] getTableau_fin_info(){
       return this.tableau_fin_info;
    }
 
@@ -48,7 +47,7 @@ public class Affiche_facture{
       String Facture = this.getContenu_facture();
         
       try {
-         Facture_text = new PrintWriter("fichiers_html_text_generes/Text/" + this.getNomclient() + "_Facture_text.txt");
+         Facture_text = new PrintWriter("fichiers_html_text_generes/Text/" + this.getClient().getNom() + "_Facture_text.txt");
       } 
       catch (FileNotFoundException e) {
          System.out.println("Erreur lors de la création du fichier: " + e.getMessage());
@@ -72,7 +71,7 @@ public class Affiche_facture{
       String Facture = Transform_text_en_html();    //Transformation de la facture text en html
         
       try {
-         Facture_HTML = new PrintWriter("fichiers_html_text_generes/HTML/" + this.getNomclient() + "_Facture_HTML.html");
+         Facture_HTML = new PrintWriter("fichiers_html_text_generes/HTML/" + this.getClient().getNom() + "_Facture_HTML.html");
       } 
       catch (FileNotFoundException e) {
          System.out.println("Erreur lors de la création du fichier: " + e.getMessage());
@@ -88,7 +87,9 @@ public class Affiche_facture{
 
 
    public String Transform_text_en_html(){
-   
+      //Pour afficher les sommes d'argent
+      NumberFormat frmt = NumberFormat.getCurrencyInstance(Locale.US); 
+      
    //On va insérer petit à petit le code html dans un StringBuffer
 
       //Balise doctype html
@@ -133,7 +134,7 @@ public class Affiche_facture{
       tampon = "  <script src=\"script.js\"></script>\n";
       html.append(tampon);
       
-      //fin balise head
+      //Debut balise head
       tampon = "</head>\n";
       html.append(tampon);
 
@@ -150,7 +151,11 @@ public class Affiche_facture{
       html.append(tampon);
       
 
-      tampon = "    <li><b>Client : </b>" + this.getNomclient() + "</li>\n";
+      tampon = "    <li><b>Client Identifier : </b>" + this.getClient().getNumeroClient() + "</li>\n";
+      html.append(tampon);
+
+
+      tampon = "    <li><b>Client Name: </b>" + this.getClient().getNom() + "</li>\n";
       html.append(tampon);
       
 
@@ -188,25 +193,82 @@ public class Affiche_facture{
       
       
 
-      // Les deux dernieres lignes 
-      
-      //Total owed			
-      tampon = "    <tr>\n" 
-      				+ "      <th COLSPAN=\"2\" style=\"text-align:right\">" + "Total owed:" + "</th>\n" 
-      			     +    "      <td>" +  this.getTableau_fin_info()[0]  +  "</td>\n" 
+      // La fin
+      // 2 possibilité d'affichage, celon si le client a droit à la reduction de 15$ ou non, on utilise un if et un else pour cela
+
+      float tmp;  // Un tampon dont on va se servir pour que le code soit plus propre
+      int tmpB;
+
+      if(this.getClient().getSoldePointsFidelite() >= 150){
+         tampon = "    <tr>\n" 
+      				+ "      <th COLSPAN=\"3\"style=\"text-align:right\">" + "Congratulations, you have won a $15 reduction for your fidelity." + "</th>\n" 
+
       			 + "    </tr>\n"; 
-      html.append(tampon);
+         html.append(tampon);
+         
+         tmp = this.getTableau_fin_info()[0];
+         
+         tampon = "    <tr>\n" 
+      				+ "      <th COLSPAN=\"2\" style=\"text-align:right\">" + "Total owed:" + "</th>\n" 
+      			     +    "      <td>" + frmt.format(tmp) + " (" + frmt.format((tmp + 15)) + " - " + frmt.format(15)+ ")" +  "</td>\n" 
+      			 + "    </tr>\n"; 
+         html.append(tampon);
       			 
       
-      //Fidelity points earned			                  
-      tampon = "    <tr>\n" 
+         //Fidelity points earned
+         
+         tmp = this.getTableau_fin_info()[1];
+         			                  
+         tampon = "    <tr>\n" 
                                 + "      <th COLSPAN=\"2\" style=\"text-align:right\">" + "Fidelity points earned:" + "</th>\n"
-                                + "      <td>" +  this.getTableau_fin_info()[1]  +  "</td>\n" 
+                                + "      <td>" +  String.valueOf((int)tmp)  +  "</td>\n" 
                          + "    </tr>\n";  
-      html.append(tampon);
+         html.append(tampon);
+      
+         //Nombres de points de fidelité total
+         
+         tmpB = this.getClient().getSoldePointsFidelite();
+         
+         tampon = "    <tr>\n" 
+                                + "      <th COLSPAN=\"2\" style=\"text-align:right\">" + "Fidelity points total:" + "</th>\n"
+                                + "      <td>" + String.valueOf(tmpB-150) + " (" +  String.valueOf(tmpB) + "-" + "150" + ")" + "</td>\n" 
+                         + "    </tr>\n";  
+         html.append(tampon); 
+         
+      }
       
       
-                 
+      else{	
+         
+         tmp = this.getTableau_fin_info()[0];
+      		
+         tampon = "    <tr>\n" 
+      				+ "      <th COLSPAN=\"2\" style=\"text-align:right\">" + "Total owed:" + "</th>\n" 
+      			     +    "      <td>" + frmt.format(tmp) +  "</td>\n" 
+      			 + "    </tr>\n"; 
+         html.append(tampon);
+      			 
+      
+         //Fidelity points earned
+         
+         tmp = this.getTableau_fin_info()[1];
+         			                  
+         tampon = "    <tr>\n" 
+                                + "      <th COLSPAN=\"2\" style=\"text-align:right\">" + "Fidelity points earned:" + "</th>\n"
+                                + "      <td>" +  String.valueOf((int)tmp)  +  "</td>\n" 
+                         + "    </tr>\n";  
+         html.append(tampon);
+      
+         //Nombres de points de fidelité total
+         
+         tmpB = this.getClient().getSoldePointsFidelite();
+         
+         tampon = "    <tr>\n" 
+                                + "      <th COLSPAN=\"2\" style=\"text-align:right\">" + "Fidelity points total:" + "</th>\n"
+                                + "      <td>" +  String.valueOf(tmpB)  +  "</td>\n" 
+                         + "    </tr>\n";  
+         html.append(tampon);           
+      }
       
       //Fermeture balise table
       tampon = "  </table>\n";
